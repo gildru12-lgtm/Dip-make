@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STIA - Elite Certificate Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Great+Vibes&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --gold: #d4af37;
+            --dark-gold: #aa8513;
+            --charcoal: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #0f1015;
+            color: #fff;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* ממשק הניהול והעריכה */
+        #admin-panel {
+            background: #1c1f26;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            max-width: 500px;
+            width: 100%;
+            margin-bottom: 25px;
+            box-sizing: border-box;
+            border: 1px solid var(--dark-gold);
+        }
+
+        #admin-panel h2 {
+            margin-top: 0;
+            color: var(--gold);
+            border-bottom: 2px solid var(--dark-gold);
+            padding-bottom: 10px;
+            font-size: 18px;
+            font-family: 'Cinzel', serif;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--gold);
+            font-size: 13px;
+        }
+
+        .form-group input, .form-group select {
+            padding: 10px;
+            border: 1px solid #3a4150;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #0f1115;
+            color: white;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            flex: 1;
+            border: none;
+            font-family: 'Cinzel', serif;
+        }
+
+        .btn-print {
+            background: linear-gradient(135deg, var(--dark-gold), var(--gold));
+            color: #000;
+        }
+
+        .btn-preview {
+            background: #2b3344;
+            color: white;
+            border: 1px solid #3a4150;
+        }
+
+        #back-to-admin {
+            display: none;
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: var(--charcoal);
+            color: white;
+            border: 2px solid var(--gold);
+            padding: 8px 16px;
+            border-radius: 20px;
+            z-index: 9999;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* --- קונטיינר מעטפת השומר על מידות קבועות ומאפשר גלילה בנייד --- */
+        #certificate-scroll-container {
+            width: 100%;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #certificate-wrapper {
+            width: 1050px; /* רוחב קבוע למניעת עיוותים */
+            height: 750px; /* גובה קבוע */
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        /* ================================================================= */
+        /* שימוש בתמונת ה-AI המקורית שלך כרקע מוחלט ומדויק */
+        /* ================================================================= */
+        #certificate-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            box-sizing: border-box;
+            overflow: hidden;
+            direction: ltr;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            
+            /* שם הקובץ המעודכן שלך מוגדר כאן ישירות */
+            background-image: url('diploma.png'); 
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* --- מיקומים אבסולוטיים מדויקים על גבי תמונת הרקע --- */
+
+        /* שם החניך - ממוקם בדיוק בתוך הקפסולה המוזהבת במרכז */
+        .student-name-overlay {
+            position: absolute;
+            top: 295px; 
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 32px;
+            font-family: 'Cinzel', serif;
+            font-weight: 800;
+            color: #111115;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+
+        /* פירוט הקורס והתפקיד המשתנה דינמית */
+        .program-text-overlay {
+            position: absolute;
+            top: 365px;
+            left: 260px;
+            right: 260px;
+            text-align: center;
+            font-size: 15px;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            color: #7a5f1d;
+            line-height: 1.4;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
+
+        /* תמונת הפספורט - מתלבשת בדיוק בתוך הריבוע הימני */
+        .profile-photo-overlay {
+            position: absolute;
+            top: 150px;
+            right: 122px;
+            width: 112px;
+            height: 142px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: transparent;
+        }
+        
+        .profile-photo-overlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* תיבת הדגלים הדינמית - ממוקמת מתחת לתמונת הפספורט מימין */
+        .flags-overlay-box {
+            position: absolute;
+            top: 325px;
+            right: 122px;
+            width: 112px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .flags-container-grid {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .flags-container-grid img {
+            width: 28px;
+            height: 18px;
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* אזור חתימת מנכ"ל - צד שמאל למטה */
+        .sig-overlay-left {
+            position: absolute;
+            bottom: 125px;
+            left: 140px;
+            width: 200px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        /* אזור חתימת מדריך ראשי - צד ימין למטה */
+        .sig-overlay-right {
+            position: absolute;
+            bottom: 125px;
+            right: 140px;
+            width: 200px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .sig-overlay-left img, .sig-overlay-right img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        .sig-cursive-text {
+            font-family: 'Great Vibes', cursive;
+            font-size: 34px;
+            color: #1a1712;
+            line-height: 1;
+        }
+
+        /* תיבת התאריך - מיושרת בצד ימין למטה מעל הריבוע המקורי */
+        .date-overlay-box {
+            position: absolute;
+            bottom: 45px;
+            right: 140px;
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: #111;
+            background: rgba(253, 250, 242, 0.85);
+            padding: 3px 10px;
+            border: 1px solid #b59434;
+        }
+
+        /* הגדרות הדפסת קנבס מלא ל-A4 לרוחב */
+        @media print {
+            @page { size: A4 landscape; margin: 0; }
+            html, body { width: 297mm; height: 210mm; background: #fff; }
+            #admin-panel, #back-to-admin { display: none !important; }
+            body { padding: 0; margin: 0; display: block; }
+            #certificate-scroll-container { overflow: visible; padding: 0; }
+            #certificate-wrapper {
+                width: 297mm; height: 210mm; max-width: none;
+                position: absolute; top: 0; left: 0; page-break-inside: avoid;
+            }
+        }
+
+        /* הגדרות למצב תצוגה מקדימה בנייד */
+        .social-mode #admin-panel { display: none; }
+        .social-mode #back-to-admin { display: block; }
+        .social-mode body { background: #0b0c10; padding: 20px 10px; }
+    </style>
+</head>
+<body>
+
+    <button id="back-to-admin" onclick="toggleSocialMode(false)">חזור לעריכה ↩</button>
+
+    <div id="admin-panel">
+        <h2>מערכת הפקת תעודות - STIA</h2>
+        
+        <div class="form-group">
+            <label>שם החניך (באנגלית):</label>
+            <input type="text" id="input-name" value="ELIAV COHEN">
+        </div>
+
+        <div class="form-group">
+            <label>תחום תפקיד והסמכה:</label>
+            <input type="text" id="input-program" value="CERTIFIED DEFENSIVE TACTICS INSTRUCTOR">
+        </div>
+
+        <div class="form-group">
+            <label>תאריך הסמכה:</label>
+            <input type="date" id="input-date" value="2026-05-16">
+        </div>
+
+        <div class="form-group">
+            <label>תמונת חניך (פספורט):</label>
+            <input type="file" id="input-photo" accept="image/*">
+        </div>
+
+        <div class="form-group">
+            <label>חתימת מנכ"ל (אופציונלי):</label>
+            <input type="file" id="input-sig-ceo" accept="image/*">
+        </div>
+
+        <div class="form-group">
+            <label>חתימת מדריך ראשי (אופציונלי):</label>
+            <input type="file" id="input-sig-chief" accept="image/*">
+        </div>
+
+        <div class="form-group">
+            <label>מדינת חברות ראשית:</label>
+            <select id="input-main-flag">
+                <option value="il" selected>ישראל 🇮🇱</option>
+                <option value="us">ארצות הברית 🇺🇸</option>
+                <option value="it">איטליה 🇮🇹</option>
+                <option value="none">ללא מדינה</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>מדינות שותפות בארגון:</label>
+            <div class="checkbox-group">
+                <div class="checkbox-item"><input type="checkbox" name="partner-flags" value="il"> ישראל</div>
+                <div class="checkbox-item"><input type="checkbox" name="partner-flags" value="us" checked> ארה"ב</div>
+                <div class="checkbox-item"><input type="checkbox" name="partner-flags" value="it" checked> איטליה</div>
+                <div class="checkbox-item"><input type="checkbox" name="partner-flags" value="cz" checked> צ'כיה</div>
+            </div>
+        </div>
+
+        <div class="btn-container">
+            <button class="btn-print" onclick="generateCertificate()">הדפס / שמור כ-PDF 🖨️</button>
+            <button class="btn-preview" onclick="toggleSocialMode(true)">תצוגה לנייד 📱</button>
+        </div>
+    </div>
+
+    <div id="certificate-scroll-container">
+        <div id="certificate-wrapper">
+            <div id="certificate-container">
+
+                <div class="student-name-overlay" id="cert-name">ELIAV COHEN</div>
+                
+                <div class="program-text-overlay" id="cert-program">
+                    CERTIFIED DEFENSIVE TACTICS INSTRUCTOR
+                </div>
+
+                <div class="profile-photo-overlay" id="cert-photo-box">
+                    <span style="color: #666; font-size: 11px;">[PHOTO SPACE]</span>
+                </div>
+
+                <div class="flags-overlay-box">
+                    <div class="flags-container-grid" id="cert-flags-container"></div>
+                </div>
+
+                <div class="sig-overlay-left" id="cert-sig-ceo">
+                    <span class="sig-cursive-text">Eliav Cohen</span>
+                </div>
+
+                <div class="sig-overlay-right" id="cert-sig-chief">
+                    <span class="sig-cursive-text">Ariel Levi</span>
+                </div>
+
+                <div class="date-overlay-box" id="cert-date">16 MAY 2026</div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateData() {
+            // עדכון השם והתוכנית לאותיות גדולות (Uppercase) למראה רשמי
+            document.getElementById('cert-name').innerText = document.getElementById('input-name').value.toUpperCase();
+            document.getElementById('cert-program').innerText = document.getElementById('input-program').value.toUpperCase();
+            
+            // עיבוד ותצוגת התאריך בפורמט אמריקאי יוקרתי
+            const rawDate = document.getElementById('input-date').value;
+            if(rawDate) {
+                const dateObj = new Date(rawDate);
+                const formatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+                document.getElementById('cert-date').innerText = dateObj.toLocaleDateString('en-US', formatOptions).toUpperCase();
+            }
+
+            // עדכון תיבת הדגלים הדינמית
+            const flagsContainer = document.getElementById('cert-flags-container');
+            flagsContainer.innerHTML = ''; 
+
+            const mainFlag = document.getElementById('input-main-flag').value;
+            if(mainFlag !== 'none') {
+                flagsContainer.innerHTML += `<img src="https://flagcdn.com/w160/${mainFlag}.png" alt="Main Flag">`;
+            }
+
+            const partnerCheckboxes = document.querySelectorAll('input[name="partner-flags"]:checked');
+            partnerCheckboxes.forEach(checkbox => {
+                if(checkbox.value !== mainFlag) {
+                    flagsContainer.innerHTML += `<img src="https://flagcdn.com/w160/${checkbox.value}.png" alt="Partner Flag">`;
+                }
+            });
+        }
+
+        // האזנה לשינויים בזמן אמת בכל השדות ללא צורך בריענון
+        document.getElementById('input-name').addEventListener('input', updateData);
+        document.getElementById('input-program').addEventListener('input', updateData);
+        document.getElementById('input-date').addEventListener('change', updateData);
+        document.getElementById('input-main-flag').addEventListener('change', updateData);
+        document.querySelectorAll('input[name="partner-flags"]').forEach(cb => cb.addEventListener('change', updateData));
+
+        function generateCertificate() {
+            updateData();
+            window.print();
+        }
+
+        function toggleSocialMode(enable) {
+            updateData();
+            if (enable) {
+                document.body.classList.add('social-mode');
+            } else {
+                document.body.classList.remove('social-mode');
+            }
+        }
+
+        function handleImageUpload(inputId, targetId) {
+            document.getElementById(inputId).addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const targetBox = document.getElementById(targetId);
+                        targetBox.innerHTML = `<img src="${event.target.result}" alt="Uploaded Asset">`;
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // הפעלת מעלי הקבצים לתמונות וחתימות
+        handleImageUpload('input-photo', 'cert-photo-box');
+        handleImageUpload('input-sig-ceo', 'cert-sig-ceo');
+        handleImageUpload('input-sig-chief', 'cert-sig-chief');
+
+        // הרצה ראשונית של הנתונים עם טעינת הדף
+        updateData();
+    </script>
+</body>
+</html>
